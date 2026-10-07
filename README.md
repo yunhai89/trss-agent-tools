@@ -23,6 +23,7 @@
 
 | 名称 | 作者 | 备注 |
 |------| ---- | ---- |
+| [哔哩哔哩 (bilibili)](./tools/bilibili) | [@云汐](https://github.com/yunhai89) | B站视频搜索/详情/内容分析/下载/字幕/评论/弹幕/榜单/热门/UP主 |
 | [QQ 音乐 (qqmusic)](./tools/qqmusic) | [@云汐](https://github.com/yunhai89) | 检索 / 详情 / 歌词 / 榜单 / 歌单；支持分享卡片与语音 |
 
 ## 🛠️ 工具包
