@@ -19,7 +19,7 @@
  * 未启用（config agent.tools.bilibili.enable:false）时 factory 返回 []，零影响。
  */
 import fs from 'node:fs'
-import { defineToolPack, defineTool, param, ok, fail, sendFile, getToolConfig } from '../../model/toolkit/index.js'
+import { defineToolPack, defineTool, param, ok, fail, sendApi, getToolConfig } from '../../model/toolkit/index.js'
 import Config from '../../utils/Config.js'
 import {
   search, getVideo, getConclusion, getSubtitles, getComments, getDanmaku,
@@ -40,6 +40,14 @@ function optsOf(ctx) {
   }
 }
 function clamp(n, min, max, d) { return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : d }
+
+/** 发送本地媒体文件：用 OneBot 原生上传动作 + **绝对路径**（大文件 base64 会被 NapCat 拒：rich media transfer failed）。 */
+async function sendMediaFile(ctx, absPath, name) {
+  const base = name || absPath.split('/').pop()
+  if (ctx?.isGroup) return !!(await sendApi(ctx, 'upload_group_file', { group_id: ctx.groupId, file: absPath, name: base })).ok
+  return !!(await sendApi(ctx, 'upload_private_file', { user_id: ctx.userId, file: absPath, name: base })).ok
+}
+
 function errNote(e) {
   if (e instanceof BiliError && e.kind === 'need_login') return '（需登录 Cookie：agent.tools.bilibili.cookie 填 B站 SESSDATA）'
   if (e instanceof BiliError && e.kind === 'risk') return '（触发风控，稍后再试或配置 Cookie）'
@@ -190,12 +198,12 @@ const downloadTool = defineTool({
         if (r.size > maxMB * 1024 * 1024) {
           return ok({ ...r, sent: false, note: `文件 ${(r.size / 1048576).toFixed(1)}MB 超过发送上限 ${maxMB}MB，未发送；路径：${r.path}` })
         }
-        try { sent = await sendFile(ctx, r.path) } catch { sent = false }
+        try { sent = await sendMediaFile(ctx, r.path, r.path.split('/').pop()) } catch { sent = false }
       }
       return ok({
         kind: r.kind, quality: r.quality ? (QUALITY_MAP[r.quality] || r.quality) : undefined,
         file: r.path.split('/').pop(), sizeMB: Number((r.size / 1048576).toFixed(2)), path: r.path, sent,
-        note: sent ? '已发送到会话' : (wantSend ? '已下载但发送失败，路径见上' : '已下载（未发送，send=false）'),
+        note: sent ? '已发送到当前会话' : (wantSend ? '⚠️ 发送失败：文件已下载到本地（路径见 path），未发到群/私聊' : '已下载（未发送，send=false）'),
       })
     } catch (e) { return fail(`B站下载失败：${e?.message || e}${errNote(e)}`, { recoverable: true }) }
   },
