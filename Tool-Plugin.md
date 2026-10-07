@@ -7,5 +7,6 @@
 <!-- 请在表首添加新行 -->
 | 名称 | 作者 | 备注 |
 | --- | --- | --- |
+| [Pixiv (pixiv)](./tools/pixiv) | [@云汐](https://github.com/yunhai89) | Pixiv 插画：搜索 / 作品(自动发图) / 排行榜 / 用户 / 标签补全。基于 `@ibaraki-douji/pixivts`；需 refreshToken（`agent.tools.pixiv`）。图片经代理（QQ 直连 pximg 不显示） |
 | [哔哩哔哩 (bilibili)](./tools/bilibili) | [@云汐](https://github.com/yunhai89) | B站视频搜索/详情/内容分析/下载/字幕/评论/弹幕/榜单/热门/UP主。`bilibili__analyze` 汇总元数据+B站AI总结+字幕/无字幕时音频STT转录+热评+弹幕交主模型分析；`bilibili__download` 下载合并MP4/音频。逆向接口来源 SocialSisterYi/bilibili-API-collect |
 | [QQ 音乐 (qqmusic)](./tools/qqmusic) | [@云汐](https://github.com/yunhai89) | QQ 音乐检索 / 详情 / 歌词 / 榜单 / 歌单；`qqmusic__song` 可发分享卡片/语音。播放直链需登录 Cookie，非会员通常 128k/m4a。逆向接口来源 L-1124/QQMusicApi、sansenjian/qq-music-api |
