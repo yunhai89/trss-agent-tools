@@ -189,6 +189,11 @@ function normalizeItem(item, category) {
   return item
 }
 
+/** 详情 track 是否可用（上游对无效 mid 可能返回空对象而非报错，须拒绝，避免发出空卡片） */
+function isUsableTrack(t) {
+  return !!(t && (t.mid || t.songmid || t.name || t.songname || t.id))
+}
+
 /**
  * 歌曲详情（现代签名网关，失败回退旧网关）。
  * @param {object} params { songmid } 或 { songid }
@@ -209,7 +214,7 @@ export async function getSongDetail({ songmid, songid } = {}, opts = {}) {
       opts,
     )
     const track = json?.req_0?.data?.track_info
-    if (track) return normalizeDetail(track)
+    if (isUsableTrack(track)) return normalizeDetail(track)
   } catch {
     /* 回退旧网关 */
   }
@@ -219,7 +224,7 @@ export async function getSongDetail({ songmid, songid } = {}, opts = {}) {
     opts,
   )
   const track = json?.songinfo?.data?.track_info || json?.req_0?.data?.track_info
-  if (!track) throw new Error('未获取到歌曲详情')
+  if (!isUsableTrack(track)) throw new Error(`未获取到歌曲详情（songmid 可能无效或上游异常：${songmid || songid}）`)
   return normalizeDetail(track)
 }
 

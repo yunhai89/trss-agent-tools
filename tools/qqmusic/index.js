@@ -98,6 +98,9 @@ const songTool = defineTool({
       }
 
       const song = await getSongDetail({ songmid }, opts)
+      if (!song.songmid && !song.name) {
+        return fail(`未获取到歌曲详情（songmid=${songmid} 可能无效，或上游异常），未发送卡片`, { recoverable: true })
+      }
       const quality = normalizeQuality(p.quality || cfg().quality || '320')
       let play = { url: '', quality, restriction: 'url_unavailable' }
       try {
@@ -107,15 +110,16 @@ const songTool = defineTool({
       }
 
       // 分享卡片：用自定义卡片（NapCat 的 music 段 id 解析已被默认签名服务关闭，
-      // 原生 type:'qq' 会报 1200；自定义卡片带 url/audio/title/image 可正常生成 QQ 音乐卡片）
+      // 原生 type:'qq' 会报 1200；自定义卡片带 url/audio/title/image 可正常生成 QQ 音乐卡片）。
+      // 必须有 songmid（跳转地址有效）才发，避免发出空卡片。
       const wantCard = p.card === undefined ? cfg().sendCard !== false : !!p.card
       let cardSent = false
-      if (wantCard) {
+      if (wantCard && song.songmid) {
         cardSent = await sendMusic(ctx, {
           type: 'custom',
           url: songJumpUrl(song.songmid),
           audio: play.url || '',
-          title: [song.name, ...song.singers].filter(Boolean).join(' - '),
+          title: [song.name, ...song.singers].filter(Boolean).join(' - ') || song.name || 'QQ音乐',
           image: coverUrl(song.albummid) || DEFAULT_COVER,
           content: song.singers.join('/'),
         })
@@ -129,6 +133,7 @@ const songTool = defineTool({
 
       const notes = []
       if (cardSent) notes.push('已发送 QQ 音乐分享卡片')
+      else if (wantCard && !song.songmid) notes.push('未发送卡片：缺少有效 songmid')
       if (sent) notes.push('已作为语音发送')
       if (!play.url) notes.push(playbackNote(play.restriction, quality))
 

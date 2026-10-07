@@ -162,6 +162,15 @@ await test('getSongDetail：现代签名网关解析 track_info', async () => {
   const s = await getSongDetail({ songmid: '0039MnYb0qxYhV' }, opts())
   eq([s.songmid, s.name, s.album, s.mediaMid], ['0039MnYb0qxYhV', '晴天', '叶惠美', '003Qui1q2u1Zho'], '详情字段')
 })
+await test('getSongDetail：无效 mid 返回空 track_info 时抛错（不发空卡片）', async () => {
+  const empty = makeFetch([
+    ['musics.fcg', () => ({ code: 0, req_0: { code: 0, data: { track_info: {} } } })],
+    ['musicu.fcg', () => ({ songinfo: { data: { track_info: {} } } })],
+  ])
+  let threw = false
+  try { await getSongDetail({ songmid: '003gZ6qL3TzDyH' }, { fetcher: empty }) } catch { threw = true }
+  okf(threw, '空 track_info → 抛错而非返回空歌曲')
+})
 
 await test('getSongUrl：签名网关域名拼接 + purl 为空标记 needLogin', async () => {
   const r = await getSongUrl('0039MnYb0qxYhV', { quality: '320' }, opts())
