@@ -7,6 +7,10 @@ import {
   parseVideoId, parseMid, fmtDuration, fmtCount, stripTags, httpsUrl, buildCookie,
   normalizeVideo, normalizeSearchItem, QUALITY_MAP,
 } from './util.js'
+import { transcribeAudio } from './api.js'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 let passed = 0
 let failed = 0
@@ -73,6 +77,27 @@ await test('normalizeSearchItem', () => {
   eq(it.duration, '4:29', '时长')
   eq(it.playText, '1.2万', '播放量')
   eq(it.cover, 'https://i.x/p.jpg', '封面')
+})
+
+await test('transcribeAudio：Whisper 兼容 STT 请求与解析', async () => {
+  const tmp = path.join(os.tmpdir(), `bili_stt_${Date.now()}.m4a`)
+  fs.writeFileSync(tmp, Buffer.from('fake-audio-bytes'))
+  let captured = null
+  const fetchImpl = async (url, opts) => {
+    captured = { url, method: opts.method, auth: opts.headers?.Authorization, isForm: typeof FormData !== 'undefined' && opts.body instanceof FormData }
+    return { ok: true, status: 200, async json() { return { text: '  转写文本  ' } } }
+  }
+  try {
+    const text = await transcribeAudio(tmp, { apiKey: 'k', apiBase: 'https://stt.example/v1/audio/transcriptions', model: 'whisper-1' }, { fetchImpl })
+    okf(text.includes('转写文本'), '解析 STT 文本')
+    okf(captured.url === 'https://stt.example/v1/audio/transcriptions', 'apiBase 作为完整端点')
+    okf(captured.method === 'POST' && captured.auth === 'Bearer k', 'POST + Bearer')
+    okf(captured.isForm, 'multipart FormData')
+  } finally { try { fs.unlinkSync(tmp) } catch { /* noop */ } }
+  // 未配置 apiKey 抛错
+  let threw = false
+  try { await transcribeAudio(tmp, {}) } catch { threw = true }
+  okf(threw, '缺 apiKey 抛错')
 })
 
 await test('工具包：resolve 产出 bilibili__ 前缀工具', async () => {

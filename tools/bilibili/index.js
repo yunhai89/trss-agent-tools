@@ -141,16 +141,20 @@ const analyzeTool = defineTool({
 
       if (!transcript && c.enableStt !== false) {
         const stt = Config.get()?.agent?.stt || {}
-        if (stt.apiKey) {
+        if (stt.enable === false) {
+          notes.push('无字幕；STT 已禁用（agent.stt.enable=false），无法转录')
+        } else if (!stt.apiKey) {
+          notes.push('无字幕且未配置 STT：请在配置中心「多模态 / 工具 / 扩展 → 语音转写 STT」填 Whisper 兼容的 apiKey（OpenAI/Groq/SiliconFlow 等；非 OpenAI 端点需同时填 apiBase），之后即可自动转录音频')
+        } else {
           let audioPath = ''
           try {
             const a = await downloadAudio({ bvid: v.bvid, cid: v.cid, title: v.title }, opts)
             audioPath = a.path
             transcript = await transcribeAudio(audioPath, stt, { fetchImpl: ctx?.fetcher })
             bundle.transcriptSource = 'STT 语音转录'
-          } catch (e) { notes.push(`STT 转录失败：${e?.message || e}`) }
+          } catch (e) { notes.push(`STT 转录失败：${e?.message || e}${/401|403|Invalid|apiKey/i.test(e?.message || '') ? '（检查 agent.stt.apiKey/apiBase）' : ''}`) }
           finally { if (audioPath) { try { fs.unlinkSync(audioPath) } catch { /* noop */ } } }
-        } else notes.push('无字幕且未配置 STT（agent.stt.apiKey），无法转录')
+        }
       }
 
       if (transcript) bundle.transcript = transcript.slice(0, cap)
